@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Path - Silent Voice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- CORE THEME --- */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            background-image: var(--bg-img, url('https://images.shiksha.com/mediadata/images/articles/1663312168phpn90Wh7.jpeg'));
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .page-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 0;
+        }
+
+        /* --- ZIG ZAG GRID --- */
+        .zig-zag-container {
+            position: relative;
+            z-index: 10;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 100px 20px 150px 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            row-gap: 80px;
+        }
+
+        .path-svg {
+            position: absolute; top: 50px; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+        }
+
+        /* --- NODES --- */
+        .node-wrapper { display: flex; justify-content: center; position: relative; }
+        .pos-center { grid-column: 1 / span 2; }
+        .pos-left   { grid-column: 1; }
+        .pos-right  { grid-column: 2; }
+
+        .level-node {
+            width: 85px; height: 85px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 4px solid #334155;
+            border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            transition: all 0.3s;
+            position: relative; z-index: 20;
+        }
+        .level-node:hover { transform: scale(1.15); border-color: #818cf8; }
+        .level-node:active { transform: scale(0.95); }
+        .node-active { border-color: #6366f1; box-shadow: 0 0 30px rgba(99, 102, 241, 0.5); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); } 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
+
+        .node-label {
+            position: absolute; bottom: -35px; background: rgba(15, 23, 42, 0.9);
+            padding: 4px 10px; border-radius: 8px; border: 1px solid #334155;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: #cbd5e1; white-space: nowrap;
+        }
+
+        /* --- GAME MODAL STYLES --- */
+        .match-card {
+            background: #1e293b; border: 2px solid #334155;
+            padding: 1rem; border-radius: 12px; text-align: center;
+            cursor: pointer; font-weight: 600; transition: 0.2s;
+        }
+        .match-card.selected { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .match-card.matched { border-color: #10b981; background: rgba(16, 185, 129, 0.1); opacity: 0.5; pointer-events: none; }
+        .match-card.wrong { border-color: #ef4444; animation: shake 0.4s; }
+        @keyframes shake { 0%,100% {transform:translateX(0);} 25% {transform:translateX(-5px);} 75% {transform:translateX(5px);} }
+
+        /* Video Container Sizing Logic */
+        .responsive-video-container {
+            width: 100%;
+            max-width: 600px; /* Limits max width on large screens */
+            aspect-ratio: 16 / 9;
+            background: black;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            border: 1px solid #334155;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-overlay"></div>
+
+    <header class="fixed top-0 w-full z-50 bg-slate-900/90 backdrop-blur border-b border-white/10">
+        <div class="max-w-xl mx-auto flex justify-between items-center px-6 py-3">
+            <a href="index.html" class="font-bold text-slate-200 flex items-center gap-2 hover:text-indigo-400 transition">
+                <span>←</span> Dashboard
+            </a>
+            <div class="bg-slate-800 px-4 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
+                <span>💎</span> <span id="gems-display" class="font-bold text-emerald-400">0</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="zig-zag-container">
+        <svg class="path-svg" viewBox="0 0 100 800" preserveAspectRatio="none">
+            <path d="M50 40 Q 50 80 25 120 T 75 240 T 25 360 T 75 480 T 25 600 T 50 720" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="10 10" />
+        </svg>
+
+        <div class="node-wrapper pos-center">
+            <div class="level-node node-active" onclick="window.app.startLevel('basic')">
+                <span class="node-label">1. Basics</span><span>📚</span>
+            </div>
+        </div>
+        <div class="node-wrapper pos-left">
+            <div class="level-node" onclick="window.app.startLevel('useful')">
+                <span class="node-label">2. Useful</span><span>👍</span>
+            </div>
+        </div>
+        <div class="node-wrapper pos-right">
+            <div class="level-node" onclick="window.app.startLevel('numbers')">
+                <span class="node-label">3. Numbers</span><span>🔢</span>
+            </div>
+        </div>
+        <div class="node-wrapper pos-left">
+            <div class="level-node" onclick="window.app.startLevel('family')">
+                <span class="node-label">4. Family</span><span>👨‍👩‍👧</span>
+            </div>
+        </div>
+        <div class="node-wrapper pos-right">
+            <div class="level-node" onclick="window.app.startLevel('greetings')">
+                <span class="node-label">5. Greetings</span><span>👋</span>
+            </div>
+        </div>
+        <div class="node-wrapper pos-left">
+            <div class="level-node" onclick="window.app.startLevel('seasons')">
+                <span class="node-label">6. Seasons</span><span>❄️</span>
+            </div>
+        </div>
+        <div class="node-wrapper pos-center">
+            <div class="level-node" onclick="window.app.startLevel('emotions')">
+                <span class="node-label">7. Emotions</span><span>😊</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-modal" class="fixed inset-0 z-[100] bg-slate-950 hidden flex flex-col">
+        <div class="flex items-center justify-between p-4 bg-slate-900 border-b border-white/10">
+            <button onclick="window.app.closeModal()" class="text-2xl text-slate-400 hover:text-white">✕</button>
+            <div class="flex-grow mx-4 h-3 bg-slate-800 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-indigo-500 w-0 transition-all duration-300"></div>
+            </div>
+            <div id="level-title" class="font-bold text-indigo-400 text-sm uppercase tracking-wider">Level</div>
+        </div>
+
+        <div class="flex-grow flex items-center justify-center p-4 overflow-y-auto w-full">
+            
+            <div id="stage-learning" class="w-full max-w-2xl text-center hidden">
+                <h2 id="learn-counter" class="text-sm font-bold text-indigo-400 mb-2 uppercase tracking-wide">Lesson 1 of 5</h2>
+                <div class="responsive-video-container">
+                    <video id="learn-video" class="w-full h-full object-cover" controls playsinline>
+                        <source src="" type="video/mp4">
+                    </video>
+                    <div id="video-error" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-slate-500">
+                        <span class="text-3xl mb-2">📹</span><p class="text-xs">Video Missing</p>
+                    </div>
+                </div>
+                <h2 id="learn-text" class="text-3xl font-bold mb-6">Word Name</h2>
+                <button id="learn-next-btn" onclick="window.app.nextVideo()" class="w-full max-w-sm py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95">NEXT LESSON</button>
+            </div>
+
+            <div id="stage-quiz" class="w-full max-w-md hidden">
+                <div class="text-center mb-6">
+                    <span class="text-xs font-bold text-pink-400 uppercase tracking-widest">Quiz Time</span>
+                    <h2 class="text-2xl font-bold mt-1">Select the Correct Sign</h2>
+                </div>
+                <div id="quiz-options" class="space-y-3"></div>
+            </div>
+
+            <div id="stage-match" class="w-full max-w-2xl hidden">
+                <div class="text-center mb-6">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Final Challenge</span>
+                    <h2 class="text-2xl font-bold mt-1">Match the Pairs</h2>
+                </div>
+                <div class="flex gap-4 md:gap-8 justify-between">
+                    <div id="match-left" class="flex-1 space-y-3"></div>
+                    <div id="match-right" class="flex-1 space-y-3"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="feedback-sheet" class="absolute bottom-0 left-0 w-full bg-slate-900 border-t border-slate-700 p-6 transform translate-y-full transition-transform duration-300 z-50">
+            <div class="max-w-md mx-auto flex items-center justify-between">
+                <div>
+                    <h3 id="fb-title" class="text-xl font-bold">Result</h3>
+                    <p id="fb-text" class="text-sm text-slate-400">Description</p>
+                </div>
+                <button id="fb-btn" onclick="window.app.handleFeedback()" class="px-6 py-3 bg-white text-black rounded-xl font-bold">CONTINUE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Database (Answer Logic: 0-1-1-2-0)
+        const db = {
+            basic: { name: "1. Basics", path: "videos/basic/", qs: [
+                {t:"Sign - 'THANK YOU'", opts:["Fingertips touch chin", "Palm open", "Index loop", "V"], ans:0},
+                {t:"Sign 'YES'", opts:["Palm In", "Fist movement", "Palm Open", "Close"], ans:1},
+                {t:"Sign 'FATHER'", opts:["Chest", "Forehead Loop (Correct)", "NO sign", "None"], ans:1},
+                {t:"Sign 'WELCOME'", opts:["Index Loop", "V", "Hand open palm up", "Fist"], ans:2},
+                {t:"Sign 'NO'", opts:["Pinch motion (Correct)", "Flat", "Point", "Pinky"], ans:0}
+            ], pairs:[{l:"Yes",r:"Nod"},{l:"No",r:"Snap"},{l:"Thanks",r:"Chin"},{l:"Welcome",r:"Sweep"}]},
+            
+            useful: { name: "2. Useful", path: "videos/useful/", qs: [
+                {t:"Yes", opts:["Fist Nod (Correct)", "Shake", "Palm", "Wave"], ans:0},
+                {t:"No", opts:["Nod", "Snap Fingers (Correct)", "Clap", "Up"], ans:1},
+                {t:"Please", opts:["Elbow", "Chest Rub (Correct)", "Chin", "Ear"], ans:1},
+                {t:"Thanks", opts:["Salute", "Wave", "Chin Fwd (Correct)", "Bow"], ans:2},
+                {t:"Sorry", opts:["Fist Rub (Correct)", "Palm", "Down", "Eyes"], ans:0}
+            ], pairs:[{l:"Yes",r:"Nod"},{l:"No",r:"Snap"},{l:"Please",r:"Rub"},{l:"Thanks",r:"Chin"}]},
+
+            numbers: { name: "3. Numbers", path: "videos/numbers/", qs: [
+                {t:"One", opts:["Index (Correct)", "V", "3", "Fist"], ans:0},
+                {t:"Two", opts:["1", "V Shape (Correct)", "Thumb", "Pinky"], ans:1},
+                {t:"Three", opts:["Pinky", "Thumb+2 (Correct)", "Fist", "Palm"], ans:1},
+                {t:"Ten", opts:["1", "5", "Shake Thumb (Correct)", "9"], ans:2},
+                {t:"Zero", opts:["O Shape (Correct)", "X", "Y", "A"], ans:0}
+            ], pairs:[{l:"1",r:"Index"},{l:"3",r:"Thumb+2"},{l:"5",r:"Palm"},{l:"10",r:"Shake"}]},
+
+            family: { name: "4. Family", path: "videos/family/", qs: [
+                {t:"Father", opts:["Forehead (Correct)", "Chin", "Cheek", "Chest"], ans:0},
+                {t:"Mother", opts:["Head", "Chin (Correct)", "Nose", "Ear"], ans:1},
+                {t:"Brother", opts:["Girl", "Boy->Cap (Correct)", "Sis", "Baby"], ans:1},
+                {t:"Sister", opts:["Boy", "Mom", "Girl->Chin (Correct)", "Dad"], ans:2},
+                {t:"Grandpa", opts:["Head Bounce (Correct)", "Chin", "Shoulder", "Elbow"], ans:0}
+            ], pairs:[{l:"Father",r:"Forehead"},{l:"Mother",r:"Chin"},{l:"Baby",r:"Rock"},{l:"Love",r:"Hug"}]},
+
+            greetings: { name: "5. Greetings", path: "videos/greetings/", qs: [
+                {t:"Hello", opts:["Salute (Correct)", "Wave", "Clap", "Bow"], ans:0},
+                {t:"Morning", opts:["Night", "Chin Rise (Correct)", "Sleep", "Wave"], ans:1},
+                {t:"Night", opts:["Morn", "Cross Down (Correct)", "Sun", "Jump"], ans:1},
+                {t:"Goodbye", opts:["Salute", "Nod", "Palm Open (Correct)", "Cry"], ans:2},
+                {t:"Welcome", opts:["Sweep (Correct)", "Push", "Stop", "Point"], ans:0}
+            ], pairs:[{l:"Hello",r:"Salute"},{l:"Morn",r:"Rise"},{l:"Night",r:"Set"},{l:"Bye",r:"Wave"}]},
+
+            seasons: { name: "6. Seasons", path: "videos/seasons/", qs: [
+                {t:"Winter", opts:["Shiver (Correct)", "Sweat", "Rain", "Grow"], ans:0},
+                {t:"Summer", opts:["Cold", "Wipe Brow (Correct)", "Snow", "Fall"], ans:1},
+                {t:"Spring", opts:["Hot", "Grow (Correct)", "Cold", "Wind"], ans:1},
+                {t:"Autumn", opts:["Flower", "Sun", "Leaf Fall (Correct)", "Snow"], ans:2},
+                {t:"Rain", opts:["Fingers Down (Correct)", "Up", "Fist", "Clap"], ans:0}
+            ], pairs:[{l:"Winter",r:"Shiver"},{l:"Summer",r:"Wipe"},{l:"Rain",r:"Fall"},{l:"Wind",r:"Blow"}]},
+
+            emotions: { name: "7. Emotions", path: "videos/emotions/", qs: [
+                {t:"Happy", opts:["Chest Up (Correct)", "Frown", "Cry", "Sleep"], ans:0},
+                {t:"Sad", opts:["Smile", "Face Down (Correct)", "Jump", "Laugh"], ans:1},
+                {t:"Angry", opts:["Happy", "Claw (Correct)", "Sleep", "Dance"], ans:1},
+                {t:"Scared", opts:["Brave", "Strong", "Shake (Correct)", "Eat"], ans:2},
+                {t:"Excited", opts:["Mid Fingers (Correct)", "Bored", "Sad", "Tired"], ans:0}
+            ], pairs:[{l:"Happy",r:"Up"},{l:"Sad",r:"Down"},{l:"Angry",r:"Claw"},{l:"Scared",r:"Shake"}]}
+        };
+
+        window.app = {
+            data: null, 
+            phase: 'learning', // learning -> quiz -> match
+            idx: 0, 
+            score: 0, 
+            selectedLeft: null, 
+            matches: 0,
+
+            startLevel: function(key) {
+                this.data = db[key];
+                this.phase = 'learning'; // Always start with videos
+                this.idx = 0;
+                document.getElementById('game-modal').classList.remove('hidden');
+                document.getElementById('level-title').innerText = this.data.name;
+                this.render();
+            },
+
+            closeModal: function() {
+                document.getElementById('game-modal').classList.add('hidden');
+                const v = document.getElementById('learn-video');
+                v.pause(); v.src=""; 
+            },
+
+            render: function() {
+                // Hide all stages
+                ['stage-learning', 'stage-quiz', 'stage-match'].forEach(id => document.getElementById(id).classList.add('hidden'));
+
+                // Calculate Progress Bar
+                // Learning (5) + Quiz (5) + Match (1) = 11 steps
+                let step = 0;
+                if(this.phase === 'learning') step = this.idx;
+                if(this.phase === 'quiz') step = 5 + this.idx;
+                if(this.phase === 'match') step = 10;
+                
+                const percent = (step / 11) * 100;
+                document.getElementById('progress-bar').style.width = `${percent}%`;
+
+                // --- PHASE 1: LEARNING ---
+                if (this.phase === 'learning') {
+                    const stage = document.getElementById('stage-learning');
+                    stage.classList.remove('hidden');
+                    
+                    // Update Text
+                    const currentQ = this.data.qs[this.idx];
+                    document.getElementById('learn-counter').innerText = `Lesson ${this.idx + 1} of 5`;
+                    // Extract word name from title (e.g. "Sign - 'HELLO'" -> "HELLO")
+                    const cleanName = currentQ.t.includes("'") ? currentQ.t.split("'")[1] : currentQ.t;
+                    document.getElementById('learn-text').innerText = cleanName;
+
+                    // Update Video
+                    const v = document.getElementById('learn-video');
+                    const err = document.getElementById('video-error');
+                    v.src = `${this.data.path}q${this.idx+1}.mp4`;
+                    v.classList.remove('hidden'); err.classList.add('hidden');
+                    v.onerror = () => { v.classList.add('hidden'); err.classList.remove('hidden'); };
+                    v.play().catch(()=>{});
+
+                    // Update Button Text
+                    const btn = document.getElementById('learn-next-btn');
+                    btn.innerText = (this.idx === 4) ? "START QUIZ" : "NEXT LESSON";
+                } 
+                // --- PHASE 2: QUIZ ---
+                else if (this.phase === 'quiz') {
+                    document.getElementById('stage-quiz').classList.remove('hidden');
+                    const q = this.data.qs[this.idx];
+                    const c = document.getElementById('quiz-options');
+                    c.innerHTML = '';
+                    
+                    // Create Question Header (optional, or use existing)
+                    const header = document.createElement('div');
+                    header.className = "mb-4 text-center text-slate-300 font-bold";
+                    header.innerText = q.t;
+                    c.appendChild(header);
+
+                    q.opts.forEach((opt, i) => {
+                        const b = document.createElement('button');
+                        b.className = "w-full p-4 bg-slate-800 border-2 border-slate-700 rounded-xl text-left hover:border-indigo-500 hover:bg-slate-750 transition flex items-center";
+                        b.innerHTML = `<span class="bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center mr-3 font-bold text-indigo-400">${i+1}</span> ${opt}`;
+                        b.onclick = () => this.checkQuiz(i);
+                        c.appendChild(b);
+                    });
+                } 
+                // --- PHASE 3: MATCH ---
+                else if (this.phase === 'match') {
+                    document.getElementById('stage-match').classList.remove('hidden');
+                    this.initMatch();
+                }
+            },
+
+            // Logic to move between videos
+            nextVideo: function() {
+                if (this.idx < 4) {
+                    this.idx++;
+                    this.render();
+                } else {
+                    // Finished all videos, start quiz
+                    this.phase = 'quiz';
+                    this.idx = 0;
+                    // Stop video player
+                    const v = document.getElementById('learn-video');
+                    v.pause();
+                    this.render();
+                }
+            },
+
+            checkQuiz: function(i) {
+                const correct = i === this.data.qs[this.idx].ans;
+                this.feedback(correct);
+            },
+
+            feedback: function(correct, matchEnd=false) {
+                const s = document.getElementById('feedback-sheet');
+                const t = document.getElementById('fb-title');
+                const m = document.getElementById('fb-text');
+                const b = document.getElementById('fb-btn');
+                s.classList.remove('translate-y-full');
+                
+                if(correct) {
+                    t.innerText = "Correct!"; t.className = "text-xl font-bold text-emerald-400";
+                    m.innerText = "Keep going!";
+                    b.className = "px-6 py-3 bg-emerald-500 text-black rounded-xl font-bold";
+                    b.innerText = matchEnd ? "FINISH LEVEL" : "CONTINUE";
+                } else {
+                    t.innerText = "Incorrect"; t.className = "text-xl font-bold text-red-400";
+                    m.innerText = "Try again.";
+                    b.className = "px-6 py-3 bg-red-500 text-white rounded-xl font-bold";
+                    b.innerText = "RETRY";
+                }
+            },
+
+            handleFeedback: function() {
+                const s = document.getElementById('feedback-sheet');
+                s.classList.add('translate-y-full');
+                const txt = document.getElementById('fb-btn').innerText;
+
+                if(txt === "RETRY") return;
+
+                if(this.phase === 'match') {
+                    // Level Finished
+                    this.score += 100;
+                    document.getElementById('gems-display').innerText = this.score;
+                    this.closeModal();
+                } else {
+                    // Quiz Logic
+                    if (this.idx < 4) {
+                        this.idx++;
+                        this.render();
+                    } else {
+                        // Quiz Finished, Start Match
+                        this.phase = 'match';
+                        this.render();
+                    }
+                }
+            },
+
+            initMatch: function() {
+                this.matches = 0; this.selectedLeft = null;
+                const l = document.getElementById('match-left');
+                const r = document.getElementById('match-right');
+                l.innerHTML = ''; r.innerHTML = '';
+                const p = this.data.pairs;
+                const ls = [...p].sort(()=>Math.random()-0.5);
+                const rs = [...p].sort(()=>Math.random()-0.5);
+
+                ls.forEach(pair => {
+                    const d = document.createElement('div');
+                    d.className = 'match-card'; d.innerText = pair.l;
+                    d.onclick = () => this.clickMatch(d,'l',pair.l);
+                    l.appendChild(d);
+                });
+                rs.forEach(pair => {
+                    const d = document.createElement('div');
+                    d.className = 'match-card'; d.innerText = pair.r;
+                    d.onclick = () => this.clickMatch(d,'r',pair.l);
+                    r.appendChild(d);
+                });
+            },
+
+            clickMatch: function(el, side, val) {
+                if(el.classList.contains('matched')) return;
+                if(side === 'l') {
+                    if(this.selectedLeft) this.selectedLeft.el.classList.remove('selected');
+                    el.classList.add('selected');
+                    this.selectedLeft = {el:el, val:val};
+                } else {
+                    if(!this.selectedLeft) return;
+                    if(this.selectedLeft.val === val) {
+                        this.selectedLeft.el.classList.add('matched');
+                        el.classList.add('matched');
+                        this.selectedLeft = null;
+                        this.matches++;
+                        if(this.matches === 4) this.feedback(true, true);
+                    } else {
+                        el.classList.add('wrong');
+                        this.selectedLeft.el.classList.add('wrong');
+                        setTimeout(()=>{
+                            el.classList.remove('wrong');
+                            if(this.selectedLeft) {
+                                this.selectedLeft.el.classList.remove('wrong','selected');
+                                this.selectedLeft = null;
+                            }
+                        }, 500);
+                    }
+                }
+            }
+        };
+    </script>
+</body>
+</html>

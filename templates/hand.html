@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Glove Hand Control</title>
+  <style>body{margin:0;overflow:hidden}</style>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158/examples/js/loaders/FBXLoader.js"></script>
+</head>
+<body>
+
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);
+camera.position.set(0,1.5,3);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff,1.2));
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(5,5,5);
+scene.add(light);
+
+let hand, bones = {};
+
+const loader = new THREE.FBXLoader();
+loader.load("hand.fbx", fbx => {
+  hand = fbx;
+  hand.scale.set(0.01,0.01,0.01);
+  scene.add(hand);
+
+  hand.traverse(o=>{
+    if(o.isBone) bones[o.name] = o;
+  });
+
+  animate();
+});
+
+function bend(bone, v){
+  if(bone) bone.rotation.x = -v * Math.PI/2;
+}
+
+async function animate(){
+  requestAnimationFrame(animate);
+
+  const r = await fetch("http://localhost:5000/data");
+  const d = await r.json();
+
+  if(hand){
+    hand.rotation.x = d.ay;
+    hand.rotation.y = d.ax;
+
+    bend(bones["Index"], d.f2);
+    bend(bones["Middle"], d.f3);
+    bend(bones["Ring"], d.f4);
+    bend(bones["Pinky"], d.f5);
+    bend(bones["Thumb"], d.f1);
+  }
+
+  renderer.render(scene,camera);
+}
+</script>
+
+</body>
+</html>

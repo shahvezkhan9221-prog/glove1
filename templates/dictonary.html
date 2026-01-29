@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Dictionary - Silent Voice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- THEME CONFIG --- */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            /* Using a dark placeholder or your campus image */
+            background-image: var(--bg-img, url('https://images.shiksha.com/mediadata/images/articles/1663312168phpn90Wh7.jpeg'));
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white;
+            min-height: 100vh;
+        }
+
+        .page-overlay {
+            position: fixed; inset: 0;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(5px);
+            z-index: 0;
+        }
+
+        /* --- SEARCH BAR --- */
+        .search-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .search-input {
+            width: 100%;
+            background: rgba(30, 41, 59, 0.6);
+            border: 2px solid #334155;
+            backdrop-filter: blur(12px);
+            padding: 1rem 1rem 1rem 3.5rem;
+            border-radius: 16px;
+            color: white;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .search-icon {
+            position: absolute; left: 1.2rem; top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8; pointer-events: none;
+        }
+
+        /* --- CATEGORY CHIPS --- */
+        .chip {
+            padding: 0.5rem 1.2rem;
+            border-radius: 99px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .chip:hover { background: #334155; color: white; }
+        .chip.active {
+            background: #4f46e5; border-color: #6366f1; color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        /* --- DICTIONARY CARDS --- */
+        .dict-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dict-card:hover {
+            transform: translateY(-5px);
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #6366f1;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .category-badge {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: #94a3b8;
+        }
+
+        /* --- MODAL --- */
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .video-wrapper video {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+        
+        .video-placeholder {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #0f172a; color: #64748b;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-overlay"></div>
+
+    <header class="fixed top-0 w-full z-40 bg-slate-900/80 backdrop-blur border-b border-white/10">
+        <div class="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
+            <a href="index.html" class="flex items-center gap-2 font-bold text-xl tracking-tight text-white hover:text-indigo-400 transition">
+                <span>📚</span> Dictionary
+            </a>
+            <a href="index.html" class="text-sm font-semibold text-slate-400 hover:text-white transition">← Dashboard</a>
+        </div>
+    </header>
+
+    <main class="relative z-10 pt-32 pb-20 px-6 max-w-7xl mx-auto">
+        
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-6 font-[Poppins]">Sign Dictionary</h1>
+            
+            <div class="search-container mb-8">
+                <svg class="search-icon w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search for signs (e.g., 'No', 'Father', 'Red')...">
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-3" id="category-filters">
+                <button class="chip active" data-cat="all">All</button>
+                <button class="chip" data-cat="basics">Basics</button>
+                <button class="chip" data-cat="greetings">Greetings</button>
+                <button class="chip" data-cat="family">Family</button>
+                <button class="chip" data-cat="food">Food</button>
+                <button class="chip" data-cat="emotions">Emotions</button>
+                <button class="chip" data-cat="colors">Colors</button>
+                <button class="chip" data-cat="numbers">Numbers</button>
+            </div>
+        </div>
+
+        <div id="dictionary-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            </div>
+
+        <div id="empty-state" class="hidden text-center py-20">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-2xl font-bold text-slate-300">No signs found</h3>
+            <p class="text-slate-500 mt-2">Try a different search term.</p>
+        </div>
+    </main>
+
+    <div id="def-modal" class="fixed inset-0 z-[100] bg-slate-950/90 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100">
+            
+            <div class="flex justify-between items-center p-5 border-b border-slate-800 bg-slate-900">
+                <div>
+                    <h2 id="modal-title" class="text-2xl font-bold text-white">Word</h2>
+                    <span id="modal-cat" class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Category</span>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-2">✕</button>
+            </div>
+
+            <div class="p-6">
+                <div class="video-wrapper mb-6 border border-slate-700">
+                    <video id="modal-video" class="relative z-10" controls autoplay loop playsinline>
+                        <source src="" type="video/mp4">
+                    </video>
+                    <div class="video-placeholder">
+                        <span class="text-3xl mb-2">📹</span>
+                        <p class="text-sm font-semibold">Video not available yet</p>
+                        <p class="text-xs">Add file to /videos folder</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-400 uppercase mb-1">Description</h3>
+                        <p id="modal-desc" class="text-slate-200 leading-relaxed">Description goes here.</p>
+                    </div>
+                    
+                    <div class="bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                        <h3 class="text-sm font-bold text-emerald-400 uppercase mb-2">💡 Usage Tip</h3>
+                        <p id="modal-tip" class="text-sm text-slate-300 italic">Tip goes here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-end">
+                <button onclick="closeModal()" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        //  DATABASE CONFIGURATION
+        // ==========================================
+        // 1. Create a folder named "videos" next to this file.
+        // 2. Add your video files there.
+        // 3. Update the 'vid' paths below.
+        
+        const dictionaryDB = [
+            // --- BASICS ---
+            { 
+                id: 1, 
+                word: "teacher", 
+                cat: "basics", 
+                desc: "tap two fingers of each hand together, then tap the other hand.",
+                tip: "", 
+                // YOUR LOCAL VIDEO FILE:
+                vid: "videos/teacher.mp4" 
+            },
+            { 
+                id: 2, 
+                word: "Yes", 
+                cat: "basics", 
+                desc: "Make a fist and nod it up and down like a head nodding.", 
+                tip: "Use facial expression to emphasize agreement.", 
+                vid: "videos/yes.mp4" // TODO: Add file
+            },
+            { 
+                id: 3, 
+                word: "Please", 
+                cat: "basics", 
+                desc: "Rub your flat palm in a circular motion over your chest.", 
+                tip: "The motion is usually clockwise.", 
+                vid: "videos/please.mp4" // TODO: Add file
+            },
+            { 
+                id: 4, 
+                word: "Thank You", 
+                cat: "basics", 
+                desc: "Touch your chin with fingertips, then move hand forward.", 
+                tip: "Smile to show gratitude.", 
+                vid: "videos/thanks.mp4" 
+            },
+            { 
+                id: 5, 
+                word: "Sorry", 
+                cat: "basics", 
+                desc: "Rub a fist in a circle over your chest.", 
+                tip: "Show a regretful facial expression.", 
+                vid: "videos/sorry.mp4" 
+            },
+
+            // --- GREETINGS ---
+            { id: 7, word: "Hello", cat: "greetings", desc: "Touch forehead with palm and move away (salute).", tip: "Maintain eye contact.", vid: "videos/hello.mp4" },
+            { id: 8, word: "Goodbye", cat: "greetings", desc: "Open and close fingers into palm (wave).", tip: "Can use one or both hands.", vid: "videos/goodbye.mp4" },
+            { id: 9, word: "Good Morning", cat: "greetings", desc: "Touch chin, bring hand down to hand, raise arm like sun.", tip: "Combine Good + Morning.", vid: "videos/morning.mp4" },
+
+            // --- FAMILY ---
+            { id: 11, word: "Family", cat: "family", desc: "Make 'F' circles with both hands touching and circling.", tip: "Represents the family circle.", vid: "videos/family.mp4" },
+            { id: 12, word: "Mother", cat: "family", desc: "Tap thumb against chin with open hand.", tip: "Female signs near chin.", vid: "videos/mother.mp4" },
+            { id: 13, word: "Father", cat: "family", desc: "Tap thumb against forehead with open hand.", tip: "Male signs near forehead.", vid: "videos/father.mp4" },
+
+            // --- EMOTIONS ---
+            { id: 16, word: "Happy", cat: "emotions", desc: "Brush flat hands up chest with bouncing motion.", tip: "Smile broadly!", vid: "videos/happy.mp4" },
+            { id: 17, word: "Sad", cat: "emotions", desc: "Drag open hands down face slowly.", tip: "Look down.", vid: "videos/sad.mp4" },
+            { id: 18, word: "Angry", cat: "emotions", desc: "Make a claw shape and pull from face.", tip: "Furrow brows.", vid: "videos/angry.mp4" },
+
+            // --- COLORS ---
+            { id: 21, word: "Red", cat: "colors", desc: "Brush index finger down lips.", tip: "Reference to red lips.", vid: "videos/red.mp4" },
+            { id: 22, word: "Blue", cat: "colors", desc: "Make 'B' shape and twist wrist.", tip: "Shake the letter B.", vid: "videos/blue.mp4" },
+            
+            // --- NUMBERS ---
+            { id: 26, word: "One", cat: "numbers", desc: "Hold up index finger.", tip: "Palm facing in.", vid: "videos/1.mp4" },
+            { id: 27, word: "Two", cat: "numbers", desc: "Index and middle finger up.", tip: "V shape.", vid: "videos/2.mp4" },
+
+            // --- FOOD ---
+            { id: 31, word: "Eat", cat: "food", desc: "Tap closed fingers to mouth.", tip: "Like putting food in mouth.", vid: "videos/eat.mp4" },
+            { id: 32, word: "Drink", cat: "food", desc: "Mimic holding a cup and tilting to mouth.", tip: "Natural gesture.", vid: "videos/drink.mp4" }
+        ];
+
+
+        // ==========================================
+        //  RENDER LOGIC (Do not edit below)
+        // ==========================================
+        const grid = document.getElementById('dictionary-grid');
+        const emptyState = document.getElementById('empty-state');
+        let currentCat = 'all';
+        let currentSearch = '';
+
+        function renderCards(data) {
+            grid.innerHTML = '';
+            
+            if (data.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'dict-card group';
+                card.onclick = () => openModal(item);
+                
+                // Color coding
+                let colorClass = "text-slate-400";
+                if(item.cat === 'basics') colorClass = "text-indigo-400";
+                if(item.cat === 'emotions') colorClass = "text-pink-400";
+                if(item.cat === 'family') colorClass = "text-emerald-400";
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="category-badge border border-white/10 ${colorClass}">${item.cat}</span>
+                        <span class="text-xs text-slate-500">#${item.id}</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-1 group-hover:text-indigo-300 transition">${item.word}</h3>
+                    <p class="text-sm text-slate-400 line-clamp-2">${item.desc}</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterData() {
+            const filtered = dictionaryDB.filter(item => {
+                const matchesCat = currentCat === 'all' || item.cat === currentCat;
+                const matchesSearch = item.word.toLowerCase().includes(currentSearch.toLowerCase());
+                return matchesCat && matchesSearch;
+            });
+            renderCards(filtered);
+        }
+
+        // Event Listeners
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            filterData();
+        });
+
+        const chips = document.querySelectorAll('.chip');
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentCat = chip.getAttribute('data-cat');
+                filterData();
+            });
+        });
+
+        // Modal Logic
+        const modal = document.getElementById('def-modal');
+        const vidPlayer = document.getElementById('modal-video');
+
+        function openModal(item) {
+            document.getElementById('modal-title').innerText = item.word;
+            document.getElementById('modal-cat').innerText = item.cat;
+            document.getElementById('modal-desc').innerText = item.desc;
+            document.getElementById('modal-tip').innerText = item.tip;
+            
+            // Handle Video Source
+            const source = vidPlayer.querySelector('source');
+            source.src = item.vid;
+            vidPlayer.load();
+            
+            // Error handling for video
+            vidPlayer.classList.remove('hidden');
+            vidPlayer.onerror = () => {
+                vidPlayer.classList.add('hidden'); // Hide video element if fails
+            };
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            // Try to play
+            vidPlayer.play().catch(e => console.log("Auto-play prevented by browser"));
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            vidPlayer.pause();
+            document.body.style.overflow = 'auto';
+        }
+
+        window.closeModal = closeModal; // Expose to global scope for buttons
+
+        // Initial Render
+        renderCards(dictionaryDB);
+
+    </script>
+</body>
+</html>
